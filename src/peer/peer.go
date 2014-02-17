@@ -12,12 +12,12 @@ import (
 
 //Client Node with name, nbr are the first hop neighbours and status is current running status
 type Node struct {
-    name   string
-    nbr    []*net.TCPAddr
-    status string
-    addr   *net.TCPAddr
-    val    int 
-    setVal []int
+    name    string
+    nbr     []*net.TCPAddr
+    status  string
+    addr    *net.TCPAddr
+    val     int 
+    setVal  []int
 }
 
 func checkErr(err error) {
@@ -26,6 +26,7 @@ func checkErr(err error) {
         os.Exit(1)
     }
 }
+
 
 func (node *Node) handleClient(conn net.Conn) {
     var buf [256]byte

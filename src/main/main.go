@@ -47,7 +47,6 @@ func main() {
          all[i] = ":" + strconv.Itoa(9000+i)
     }
     
-    conVal := make([]string, graph.numNodes)
     for i := 0; i < graph.numNodes; i++{
         port := all[i]
         nbrs := make([]string, graph.numNodes-1)
