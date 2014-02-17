@@ -2,7 +2,6 @@
 package peer
 
 import (
-
     "fmt"
     "time"
     "os"
@@ -99,6 +98,7 @@ func Client(port string, nbrs []string) {
     time.Sleep(200*time.Millisecond) 
     rand.Seed(time.Now().UTC().UnixNano())
     node.val = initVal()
+    node.setVal = append(node.setVal, node.val)
     msg := "My (" + strconv.Itoa(node.addr.Port) + ") initial value is " + strconv.Itoa(node.val)
     fmt.Println(msg)
     node.broadcast()
