@@ -8,6 +8,7 @@ import (
     "os"
     "net"
     "strconv"
+    "math/rand"
     )
 
 //Client Node with name, nbr are the first hop neighbours and status is current running status
@@ -16,8 +17,8 @@ type Node struct {
     nbr    []*net.TCPAddr
     status string
     addr   *net.TCPAddr
-    //connections []*net.TCPConn
-
+    val    int 
+    setVal []int
 }
 
 func checkErr(err error) {
@@ -27,12 +28,15 @@ func checkErr(err error) {
     }
 }
 
-func handleClient(conn net.Conn) {
+func (node *Node) handleClient(conn net.Conn) {
     var buf [256]byte
     n, err := conn.Read(buf[0:])
     checkErr(err)
-    fmt.Println("read")
-    fmt.Println(string(buf[0:n]))
+    val, err := strconv.Atoi(string(buf[0:n]))
+    checkErr(err)
+    node.setVal = append(node.setVal, val)
+    //fmt.Println("read")
+    //fmt.Println(string(buf[0:n]))
     conn.Close() 
 }
 
@@ -42,7 +46,7 @@ func (node *Node) accept(listener *net.TCPListener) {
             if err != nil {
                 continue
             }
-            go handleClient(conn)
+            go node.handleClient(conn)
             //node.connections[0] = &net.TCPConn(conn)
         }
 }
@@ -53,20 +57,29 @@ func (node *Node) listen() {
     go node.accept(listener)
 }
 
-func (node *Node) openTCPconn(rcvr *net.TCPAddr) {
+func (node *Node) openTCPconn(rcvr *net.TCPAddr) *net.TCPConn {
     conn, err := net.DialTCP("tcp", nil, rcvr)
     checkErr(err)
-    write := "Hi" + strconv.Itoa(rcvr.Port)
-    fmt.Printf("Writing %s\n", write)
-    _, err = conn.Write([]byte(write))
-    checkErr(err)
+    return conn
 }
 
+func (node *Node) write(msg string, conn *net.TCPConn) {
+        //fmt.Printf("Writing %s\n", msg)
+        _, err := conn.Write([]byte(msg))
+        checkErr(err)
+}
 
 func (node *Node) broadcast() {
+    msg := strconv.Itoa(node.val)
     for _, nbr := range node.nbr {
-        node.openTCPconn(nbr)
+        conn := node.openTCPconn(nbr)
+        node.write(msg, conn)
+        
     }
+}
+
+func initVal() int{
+    return rand.Intn(2)
 }
 
 func Client(port string, nbrs []string) {
@@ -81,11 +94,28 @@ func Client(port string, nbrs []string) {
         tcpAddrNbr[i] = addr
     }
     node.nbr = tcpAddrNbr 
-    fmt.Printf("Hi my name is %s\n", node.name)
-    //for _, val := range node.nbr {
-    //    fmt.Printf("I am %s. And my neighbour is %d", node.name, val.Port)
-    //}
+    //fmt.Printf("Hi my name is %s\n", node.name)
     node.listen()
     time.Sleep(200*time.Millisecond) 
+    rand.Seed(time.Now().UTC().UnixNano())
+    node.val = initVal()
+    msg := "My (" + strconv.Itoa(node.addr.Port) + ") initial value is " + strconv.Itoa(node.val)
+    fmt.Println(msg)
     node.broadcast()
+    time.Sleep(200*time.Millisecond) 
+    //fmt.Printf("Hi, my port is %s. The set of values I have received are: \n", node.name)
+    count := make(map[int]int)
+    for _, val := range node.setVal {
+        count[val] += 1
+        //fmt.Printf("I am %s. Setval: %d\n", node.name, val)
+    }
+    maxVal := 0
+    var maxKey int
+    for key, _ := range count {
+        if count[key] > maxVal {
+            maxKey = key
+            maxVal = count[key]
+        }
+    }
+    fmt.Println("The consensus is value ", maxKey)
 }
