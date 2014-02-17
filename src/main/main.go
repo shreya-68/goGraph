@@ -1,65 +1,63 @@
 package main
 
 import (
-
     "fmt"
     "time"
-
+    "os"
+//    "net"
+    "peer"
+    "strconv"
     )
 
-//Client Node with name, nbr are the first hop neighbours and status is current running status
-type Node struct {
-    name   string
-    nbr    []Node
-    status string
-
-}
 
 
 type Graph struct {
-
     numNodes int
-    nodes    []*Node
-    edges    map[*Node]*Node
-
+    nodes    []*peer.Node
+    edges    map[*peer.Node]*peer.Node
 }
 
 
 
 var graph Graph
 
+func checkErr(err error) {
+    if err != nil {
+        fmt.Printf("Fatal error: %s \n", err)
+        os.Exit(1)
+    }
+}
+
 func initGraph() {
-
-    var nodeA = Node{name:"A", status: "Init"}
-    var nodeB = Node{name:"B", status: "Init"}
-    nodeA.nbr = []Node{nodeB}
-    nodeB.nbr = []Node{nodeA}
-    graph = Graph{numNodes: 2, nodes: []*Node{&nodeA, &nodeB}}
-    graph.edges = map[*Node]*Node{&nodeA:&nodeB, &nodeB:&nodeA}
-    
+    num, _ := strconv.Atoi(os.Args[1])
+    graph = Graph{numNodes: num}
 }
 
-func Client(node *Node) {
 
-    fmt.Printf("Hi my name is %s", node.name)
-
-}
 
 func main() {
-
     //Create a centralised monitor
 
     //Initialise graph
     initGraph()
 
-   //Launch Client goroutines
-   for i := 0; i < graph.numNodes; i++{
-
-       fmt.Printf(graph.nodes[i].name)
-       go Client(graph.nodes[i])
-
-   }
-   time.Sleep(2000*time.Millisecond) 
-   fmt.Printf("Done!")
-
+    //Launch Client goroutines
+    all := make([]string, graph.numNodes)
+    for i := 0; i < graph.numNodes; i++{
+         all[i] = ":" + strconv.Itoa(9000+i)
+    }
+    for i := 0; i < graph.numNodes; i++{
+        port := all[i]
+        nbrs := make([]string, graph.numNodes-1)
+        for j, x := 0, 0; j < graph.numNodes; j++ {
+            if j != i {
+                nbrs[x] = all[j]
+                x++
+            }
+        }
+        go peer.Client(port, nbrs)
+    }
+    time.Sleep(2000*time.Millisecond) 
+    fmt.Printf("Done!")
+    os.Exit(0)
 }
